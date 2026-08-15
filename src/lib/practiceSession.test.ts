@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   accuracyPercent,
   createSession,
+  createSessionFromOrder,
   currentTarget,
   recordCorrect,
   recordWrong,
@@ -9,7 +10,32 @@ import {
 } from "./practiceSession";
 import { LETTERS } from "./classifier";
 
+describe("createSessionFromOrder", () => {
+  it("uses the exact order given, unshuffled, tagged as drill mode", () => {
+    const order = ["M", "M", "S", "N"] as const;
+    const session = createSessionFromOrder(order);
+    expect(session.order).toEqual(order);
+    expect(session.mode).toBe("drill");
+    expect(currentTarget(session)).toBe("M");
+  });
+
+  it("an empty order is immediately finished, not an error", () => {
+    expect(createSessionFromOrder([]).finished).toBe(true);
+  });
+
+  it("correct/wrong/skip all work identically to a free-practice session", () => {
+    let session = createSessionFromOrder(["M", "N"]);
+    session = recordCorrect(session);
+    expect(session.correct).toBe(1);
+    expect(currentTarget(session)).toBe("N");
+  });
+});
+
 describe("createSession", () => {
+  it("is tagged as free mode", () => {
+    expect(createSession(1).mode).toBe("free");
+  });
+
   it("shuffles all 24 letters, none lost or duplicated", () => {
     const session = createSession(1);
     expect(session.order).toHaveLength(LETTERS.length);

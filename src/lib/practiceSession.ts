@@ -10,7 +10,10 @@
  */
 import { LETTERS, type Letter } from "./classifier";
 
+export type SessionMode = "free" | "drill";
+
 export interface SessionState {
+  readonly mode: SessionMode;
   readonly seed: number;
   readonly order: readonly Letter[];
   readonly index: number;
@@ -46,8 +49,11 @@ function seededShuffle<T>(items: readonly T[], seed: number): T[] {
   return out;
 }
 
+/** SPEC.md §9's "Free practice" — the full 24-letter set, shuffled once
+ * with a per-session fixed seed. */
 export function createSession(seed: number, letters: readonly Letter[] = LETTERS): SessionState {
   return {
+    mode: "free",
     seed,
     order: seededShuffle(letters, seed),
     index: 0,
@@ -57,6 +63,30 @@ export function createSession(seed: number, letters: readonly Letter[] = LETTERS
     bestStreak: 0,
     lastResult: null,
     finished: letters.length === 0,
+  };
+}
+
+/**
+ * SPEC.md §9's "Drill" — the order is supplied pre-built by the caller
+ * (PracticeClient, via progress.ts's nextDrillLetter('confusable'|'weak'),
+ * called once per slot so each pick can react to the visitor's own latest
+ * misses) rather than shuffled here. Not seed-reproducible the way Free
+ * practice is — deliberately: progress.ts's own weighting already draws on
+ * localStorage state, so "resumable from a fixed seed" does not apply the
+ * same way to an adaptive drill.
+ */
+export function createSessionFromOrder(order: readonly Letter[]): SessionState {
+  return {
+    mode: "drill",
+    seed: 0,
+    order,
+    index: 0,
+    attempted: 0,
+    correct: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    lastResult: null,
+    finished: order.length === 0,
   };
 }
 
