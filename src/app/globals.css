@@ -78,7 +78,7 @@ main {
 
 .honesty-line {
   border: 1px solid var(--color-rule);
-  border-left: 3px solid var(--color-amber);
+  background: color-mix(in srgb, var(--color-amber) 8%, transparent);
   padding: 0.75rem 1rem;
   margin: 1rem 0;
   font-size: 0.95rem;
@@ -150,9 +150,10 @@ main {
 
 [data-testid="feedback-wrong"] {
   color: var(--color-ink);
-  border-left: 3px solid var(--color-amber);
-  padding-left: 0.75rem;
+  background: color-mix(in srgb, var(--color-amber) 8%, transparent);
+  padding: 0.35rem 0.75rem;
   margin: 0.75rem 0;
+  border-radius: 2px;
 }
 
 button {
@@ -178,7 +179,7 @@ button:focus-visible {
 
 [role="alert"] {
   border: 1px solid var(--color-rule);
-  border-left: 3px solid var(--color-amber);
+  background: color-mix(in srgb, var(--color-amber) 8%, transparent);
   padding: 0.75rem 1rem;
   margin: 1rem 0;
 }
