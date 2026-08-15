@@ -7,7 +7,8 @@ import {
   type HandLandmarkerResult,
 } from "@/lib/handLandmarker";
 import { normalizeLandmarks, type Handedness } from "@/lib/normalize";
-import { classify, type ClassifyResult } from "@/lib/classifier";
+import { classify, type ClassifyResult, type Letter } from "@/lib/classifier";
+import { StabilityTracker } from "@/lib/stability";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
 
 /** SPEC.md §7.1: detection decimated to ~15Hz regardless of delegate. */
@@ -32,12 +33,20 @@ export interface TrackingState {
 }
 
 /**
- * Owns the camera -> HandLandmarker -> normalize -> classify pipeline
- * (SPEC.md §4 Runtime). M1: GPU delegate only. M6 adds the CPU fallback and
- * camera-denied/no-camera flashcard routing on top of the states already
- * modeled here.
+ * Owns the camera -> HandLandmarker -> normalize -> classify -> stability
+ * pipeline (SPEC.md §4 Runtime). M1: GPU delegate only. M6 adds the CPU
+ * fallback and camera-denied/no-camera flashcard routing on top of the
+ * states already modeled here.
+ *
+ * `onHeld` fires synchronously (SPEC.md §5's StabilityTracker.push edge-
+ * trigger) so the practice UI can react to a hold the instant it happens,
+ * rather than diffing React state across renders — two consecutive holds
+ * of the same letter would otherwise look identical to a state comparison.
  */
-export function useHandTracking(videoRef: React.RefObject<HTMLVideoElement | null>) {
+export function useHandTracking(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  onHeld?: (letter: Letter) => void,
+) {
   const [state, setState] = useState<TrackingState>({
     status: "idle",
     errorMessage: null,
@@ -50,6 +59,9 @@ export function useHandTracking(videoRef: React.RefObject<HTMLVideoElement | nul
   const rafRef = useRef<number | null>(null);
   const lastDetectRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const stabilityRef = useRef(new StabilityTracker());
+  const onHeldRef = useRef(onHeld);
+  onHeldRef.current = onHeld;
 
   const tick = useCallback((now: number) => {
     rafRef.current = requestAnimationFrame(tick);
@@ -70,6 +82,9 @@ export function useHandTracking(videoRef: React.RefObject<HTMLVideoElement | nul
     const landmarks = result.landmarks[0];
     const handednessCategory = result.handedness[0]?.[0];
     if (!landmarks || !handednessCategory) {
+      // F8: hand exits frame mid-hold -> reset(), a gap always breaks a
+      // streak — a stronger signal than just one more null tick.
+      stabilityRef.current.reset();
       setState((s) => ({ ...s, prediction: null, rawLandmarks: null }));
       return;
     }
@@ -79,6 +94,14 @@ export function useHandTracking(videoRef: React.RefObject<HTMLVideoElement | nul
       const vec = normalizeLandmarks(landmarks, handedness);
       const prediction = classify(vec);
       setState((s) => ({ ...s, prediction, rawLandmarks: landmarks }));
+      const stability = stabilityRef.current.push({
+        letter: prediction.letter,
+        confidence: prediction.confidence,
+        ts: now,
+      });
+      if (stability.held && stability.letter) {
+        onHeldRef.current?.(stability.letter);
+      }
     } catch {
       setState((s) => ({ ...s, prediction: null, rawLandmarks: landmarks }));
     }
@@ -91,6 +114,10 @@ export function useHandTracking(videoRef: React.RefObject<HTMLVideoElement | nul
     landmarkerRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+  }, []);
+
+  const resetStability = useCallback(() => {
+    stabilityRef.current.reset();
   }, []);
 
   const start = useCallback(async () => {
@@ -136,5 +163,5 @@ export function useHandTracking(videoRef: React.RefObject<HTMLVideoElement | nul
 
   useEffect(() => stop, [stop]);
 
-  return { state, start, stop };
+  return { state, start, stop, resetStability };
 }

@@ -29,7 +29,11 @@ export const COLLECT_URL = `http://127.0.0.1:${COLLECT_PORT}`;
  */
 export default defineConfig({
   testDir: "./tests/e2e",
-  timeout: 45_000,
+  // tests/e2e/practice-session.spec.ts's skip-loop can legitimately take
+  // ~30s locally (up to 24 x 600ms waits plus model load) — 60s keeps
+  // real headroom on a slower CI runner rather than sitting right at the
+  // edge of the default.
+  timeout: 60_000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
