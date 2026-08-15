@@ -49,7 +49,17 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // 2, not 1, on CI specifically: CI run 31895600129 (2026-08-15) showed a
+  // real Chromium renderer crash ("Protocol error: session closed") on one
+  // attempt of a reload-heavy test, immediately followed by a clean pass on
+  // retry #1 of a structurally identical sibling test in the same file —
+  // never reproduced locally across multiple full-suite runs. That is
+  // GitHub's shared, GPU-less runner running low on headroom partway
+  // through 11 sequential MediaPipe WASM+GPU test contexts in one browser
+  // process, not a deterministic bug a single retry can't already tell
+  // apart from one. See also launchOptions' --disable-dev-shm-usage below,
+  // the standard companion fix for this exact crash signature in CI.
+  retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : "list",
   use: {
@@ -88,6 +98,14 @@ export default defineConfig({
             "--use-fake-ui-for-media-stream",
             "--use-fake-device-for-media-stream",
             `--use-file-for-fake-video-capture=${FAKE_VIDEO}`,
+            // Standard CI-hardening flag (Playwright's own Docker images
+            // pass it by default): Chromium's default /dev/shm usage for a
+            // WASM+GPU-heavy pipeline like this one is exactly the known
+            // trigger for the renderer-crash signature ("Protocol error:
+            // session closed") seen on CI run 31895600129 — never
+            // reproduced locally. Zero effect on any assertion; every row
+            // in every project gets it for the same reason.
+            "--disable-dev-shm-usage",
           ],
         },
       },
@@ -106,6 +124,7 @@ export default defineConfig({
             "--disable-webgl",
             "--disable-gpu",
             "--disable-software-rasterizer",
+            "--disable-dev-shm-usage",
           ],
         },
       },
@@ -117,6 +136,9 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         // No fake-media-stream args: getUserMedia() hits Chromium's real
         // (headless-auto-denied) permission path.
+        launchOptions: {
+          args: ["--disable-dev-shm-usage"],
+        },
       },
     },
   ],
