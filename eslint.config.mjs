@@ -24,6 +24,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright's HTML report and raw test-results embed a minified,
+    // bundled report-viewer app — caught this the hard way: eslint tried
+    // to apply react-hooks/rules-of-hooks to a single-line minified bundle
+    // (3,031 problems) the first time this wasn't ignored.
+    "playwright-report/**",
+    "test-results/**",
+    "blob-report/**",
+    "coverage/**",
   ]),
 ]);
 

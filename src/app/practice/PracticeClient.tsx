@@ -5,11 +5,13 @@ import { useHandTracking } from "./useHandTracking";
 import { drawHandOverlay, clearOverlay } from "@/lib/drawOverlay";
 
 /**
- * M1 walking skeleton (SPEC.md M1 row): camera -> HandLandmarker (GPU
- * only) -> normalize.ts -> stub classifier -> live overlay + predicted
- * label. No stability/session UI yet (M5), no CPU/flashcard fallback yet
- * (M6), no progress/drill yet (M7) — those land in their own commits on
- * top of this same page.
+ * M1 walking skeleton (SPEC.md M1 row), classifier upgraded to the real
+ * model at M4: camera -> HandLandmarker (GPU only) -> normalize.ts ->
+ * classifier.ts (the committed, trained model — see its own header for the
+ * provisional-eval caveat) -> live overlay + predicted label. No
+ * stability/session UI yet (M5), no CPU/flashcard fallback yet (M6), no
+ * progress/drill yet (M7) — those land in their own commits on top of this
+ * same page.
  */
 export default function PracticeClient() {
   const videoRef = useRef<HTMLVideoElement | null>(null);

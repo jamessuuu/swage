@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { LETTERS } from "../../src/lib/classifier";
 
 /**
  * M1 walking-skeleton verifier (SPEC.md M1 row): "a real hand produces a
@@ -8,6 +9,16 @@ import { test, expect } from "@playwright/test";
  * tests/fixtures/ATTRIBUTION.md), fed through Chromium's fake video capture
  * device so the whole camera -> HandLandmarker -> normalize -> classify ->
  * overlay pipeline runs against a real decoded frame, not a mock.
+ *
+ * Since the M4 commit this exercises the real, committed
+ * model/weights.json (M1's original 2-letter stub rule is gone) — so the
+ * assertion below only checks the label is a real member of the 24-class
+ * set, not a specific letter. This photo is an out-of-training-
+ * distribution "presentational hands" demo image, not a clean held ASL
+ * letter, so whatever the model reads it as is not itself a claim about
+ * accuracy — model/eval-report.json's own (provisional) numbers are that
+ * claim. This test's job is proving the pipeline runs end to end on real
+ * input, which it does.
  *
  * The M6 commit adds a second Playwright project (playwright.config.ts,
  * --disable-webgl2 --disable-webgl) that exercises the F3
@@ -27,10 +38,9 @@ test("a real hand in the fake camera feed produces a live handshape match", asyn
   await expect(predicted).toContainText("Handshape match:", { timeout: 15_000 });
   await expect(predicted).not.toContainText("No hand detected");
 
-  // A real letter from the stub's 2-class rule (SPEC.md M1: "stub
-  // classifier (2-3 letters)" — see src/lib/classifier.ts).
+  // A real letter from the real, committed 24-class model (SPEC.md M4).
   const text = await predicted.innerText();
-  expect(["A", "B"].some((letter) => text.includes(letter))).toBe(true);
+  expect(LETTERS.some((letter) => text.includes(letter))).toBe(true);
 });
 
 test("the delegate badge reports the GPU delegate", async ({ page }) => {
