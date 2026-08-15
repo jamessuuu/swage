@@ -48,3 +48,5 @@ next-env.d.ts
 # scratch (never committed; see scripts/collect/ for the real capture tool)
 /data/asl-now-raw/
 
+
+.vercel
