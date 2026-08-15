@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: five-stage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Stage 1/5
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      # Stage 2/5
+      - name: Lint
+        run: pnpm run lint
+
+      # Stage 3/5
+      - name: Unit tests
+        run: pnpm run test
+
+      # Stage 4/5 — e2e smoke. Chromium only, both the GPU-delegate and the
+      # --disable-webgl2/--disable-webgl CPU-fallback projects (SPEC.md §8,
+      # §10 M6). Installed explicitly with its OS deps because a runner has
+      # no browser preinstalled — this is the exact step QUALITY-BAR.md
+      # flags as previously broken on other repos in this program.
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: e2e smoke
+        run: pnpm run test:e2e
+
+      # Stage 5/5 — classifier fixture eval + eval-report.json drift check
+      # (SPEC.md §8). Runs the COMMITTED model/weights.json against frozen
+      # golden fixtures; never retrains in CI (floating-point variance across
+      # runners would make this gate flaky, per SPEC.md §3.4).
+      - name: Eval gate
+        run: pnpm run eval
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

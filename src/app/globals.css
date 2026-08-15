@@ -1,0 +1,77 @@
+/*
+ * Palette is showcase-program/BRAND-KIT.md's binding tokens (PAPER / INK /
+ * AMBER / RULE), mirrored from src/lib/brand.ts so JS and CSS agree. 0-2px
+ * radius, no gradients, no glow, no dark chrome — this file never defines a
+ * gradient, blur, or shadow-glow utility.
+ */
+:root {
+  --color-paper: #faf7f2;
+  --color-ink: #1a1712;
+  --color-amber: #b45309;
+  --color-rule: #e4ddd3;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+}
+
+html {
+  height: 100%;
+  color-scheme: light;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background-color: var(--color-amber);
+  color: var(--color-paper);
+}
+
+/* Respect reduced-motion everywhere by default (SPEC.md F9) — individual
+   components opt into stronger statements only where they animate at all. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
