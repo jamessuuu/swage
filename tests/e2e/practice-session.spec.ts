@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { correctCount, skipUntilCorrect } from "./helpers/practiceLoop";
 
 /**
  * M5 verifier (SPEC.md M5 row): "Playwright with fake-camera video
@@ -18,21 +19,13 @@ import { test, expect, type Page } from "@playwright/test";
  * first target already matches and auto-advances before this test reads
  * anything. Polling the authoritative correct-count sidesteps that race
  * entirely instead of trying to out-guess it with text comparisons.
+ *
+ * The skip loop itself is shared with progress-persistence.spec.ts — see
+ * tests/e2e/helpers/practiceLoop.ts's skipUntilCorrect for why each click
+ * inside it is bounded and can env-gate this test.
  */
 
-async function correctCount(page: Page): Promise<number> {
-  const progress = page.getByTestId("session-progress");
-  const summary = page.getByTestId("session-summary");
-  const text = (await progress.count())
-    ? await progress.innerText()
-    : (await summary.count())
-      ? await summary.innerText()
-      : "";
-  const match = /(\d+)\/(\d+) correct/.exec(text);
-  return match?.[1] ? Number(match[1]) : 0;
-}
-
-test("completes one letter end to end via the fake-camera fixture", async ({ page }) => {
+test("completes one letter end to end via the fake-camera fixture", async ({ page }, testInfo) => {
   await page.goto("/practice");
   await page.getByTestId("start-camera").click();
 
@@ -49,11 +42,7 @@ test("completes one letter end to end via the fake-camera fixture", async ({ pag
   // each iteration gives the tracker a fresh ~600ms+ window on the new
   // target before checking again, comfortably covering SPEC.md §7.1's
   // 8-tick (~533ms) hold window.
-  for (let i = 0; i < 24 && (await correctCount(page)) < 1; i++) {
-    if ((await page.getByTestId("session-summary").count()) > 0) break;
-    await page.getByTestId("skip-target").click();
-    await page.waitForTimeout(600);
-  }
+  await skipUntilCorrect(page, testInfo);
 
   expect(await correctCount(page)).toBeGreaterThanOrEqual(1);
 });
