@@ -6,6 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FAKE_VIDEO = path.join(__dirname, "tests/fixtures/hand-a.mjpeg");
 const PORT = 3417;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const COLLECT_PORT = 5183;
+export const COLLECT_URL = `http://127.0.0.1:${COLLECT_PORT}`;
 
 /**
  * "smoke-gpu" is the only project through M1-M5: normal launch, WebGL2
@@ -38,12 +40,22 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "off",
   },
-  webServer: {
-    command: `pnpm exec next dev --port ${PORT}`,
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `pnpm exec next dev --port ${PORT}`,
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // scripts/collect/ (SPEC.md §3.1 M2) — a standalone Vite page, not
+      // part of the Next.js app, exercised by tests/e2e/collect-tool.spec.ts.
+      command: `pnpm exec vite --config scripts/collect/vite.config.ts --port ${COLLECT_PORT} --strictPort`,
+      url: COLLECT_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
   projects: [
     {
       name: "smoke-gpu",

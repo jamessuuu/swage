@@ -17,7 +17,9 @@
     "train": "tsx scripts/train.ts",
     "data-check": "tsx scripts/data-check.ts",
     "eval": "tsx scripts/eval-check.ts",
-    "brand": "node scripts/brand.mjs --project=swage --out=public/brand"
+    "brand": "node scripts/brand.mjs --project=swage --out=public/brand",
+    "collect": "vite --config scripts/collect/vite.config.ts",
+    "mirror-asl-now": "tsx scripts/mirror-asl-now.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
@@ -37,6 +39,7 @@
     "eslint-config-next": "16.3.1",
     "tsx": "^4.23.12",
     "typescript": "^5",
+    "vite": "^8.2.1",
     "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@9.15.4"

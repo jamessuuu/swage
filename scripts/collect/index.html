@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>swage — volunteer capture (internal, not shipped)</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        background: #faf7f2;
+        color: #1a1712;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      .camera-frame {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        aspect-ratio: 4 / 3;
+        background: #1a1712;
+        transform: scaleX(-1);
+      }
+      .camera-frame video,
+      .camera-frame canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      button {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+        margin-top: 0.5rem;
+        cursor: pointer;
+      }
+      #progress {
+        font-family: ui-monospace, monospace;
+        margin: 1rem 0;
+      }
+      #status[data-tone="warn"] {
+        color: #b45309;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>swage — volunteer capture</h1>
+    <p>
+      <strong>Internal tool, not part of the shipped product.</strong>
+      SPEC.md §3.1: records hand landmarks only — no video or image frame is
+      ever written to disk. Requires a signed/recorded consent from the
+      volunteer, obtained and kept privately <em>outside</em> this tool,
+      before you begin.
+    </p>
+
+    <div id="setup">
+      <label for="signerId">Volunteer signer ID (a code, not a real name):</label><br />
+      <input id="signerId" type="text" placeholder="e.g. signer-03" /><br />
+      <label><input id="consent" type="checkbox" /> I have recorded this volunteer's consent, kept privately, outside this tool.</label><br />
+      <button id="start" type="button">Start capture</button>
+    </div>
+
+    <div id="capture" hidden>
+      <div class="camera-frame">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <p id="progress"></p>
+      <p id="status"></p>
+      <button id="captureBtn" type="button">Capture (or press Space)</button>
+      <button id="skipBtn" type="button">Skip this letter</button>
+      <button id="saveDirBtn" type="button">Choose save folder</button>
+    </div>
+
+    <div id="done" hidden>
+      <p><strong>Session complete.</strong> <span id="doneSummary"></span></p>
+      <button id="downloadAllBtn" type="button">Download all captures as one JSON (fallback)</button>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
