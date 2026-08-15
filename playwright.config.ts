@@ -22,10 +22,23 @@ export const COLLECT_URL = `http://127.0.0.1:${COLLECT_PORT}`;
  * .mp4 file; .mjpeg (like raw .y4m) actually works. Documented as a spec
  * deviation in tests/fixtures/ATTRIBUTION.md.
  *
- * The M6 commit adds a second "smoke-cpu" project
- * (--disable-webgl2 --disable-webgl) alongside the F3 catch-and-retry-CPU
- * fallback it introduces — added here, not before, so this config never
- * describes a project with no passing test behind it.
+ * "smoke-cpu" (added at M6, alongside the F3 catch-and-retry-CPU fallback
+ * it exists to test) launches with --disable-webgl2 --disable-webgl,
+ * forcing HandLandmarker's GPU delegate creation to reject so the
+ * catch-and-retry-CPU path in src/lib/handLandmarker.ts actually runs.
+ * Scoped via testMatch to tests/e2e/degradation-cpu.spec.ts only — the
+ * other specs don't test GPU-vs-CPU behaviour and would just double the
+ * suite's runtime for no signal if run under both projects.
+ *
+ * "smoke-no-camera" (M6, F1/F2) launches with NEITHER fake-media-stream
+ * flag. Verified empirically, not assumed: with no fake device configured,
+ * headless Chromium enumerates zero video input devices at all, so
+ * getUserMedia() rejects NotFoundError — useHandTracking.ts's genuine F2
+ * ("no camera hardware") branch, not F1 ("permission denied", which would
+ * need a device to exist but its permission prompt to be denied). Both
+ * render through the same flashcard UI; see flashcard-mode.spec.ts's own
+ * header for why only one is exercised end to end. Scoped via testMatch to
+ * tests/e2e/flashcard-mode.spec.ts only, same reasoning as smoke-cpu.
  */
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -63,6 +76,11 @@ export default defineConfig({
   projects: [
     {
       name: "smoke-gpu",
+      // degradation-cpu.spec.ts and flashcard-mode.spec.ts belong to their
+      // own projects below — running them here too would launch them
+      // under a browser config where the exact thing they test (CPU
+      // fallback; a genuinely denied/no camera permission) never triggers.
+      testIgnore: ["degradation-cpu.spec.ts", "flashcard-mode.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
         launchOptions: {
@@ -72,6 +90,33 @@ export default defineConfig({
             `--use-file-for-fake-video-capture=${FAKE_VIDEO}`,
           ],
         },
+      },
+    },
+    {
+      name: "smoke-cpu",
+      testMatch: "degradation-cpu.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: [
+            "--use-fake-ui-for-media-stream",
+            "--use-fake-device-for-media-stream",
+            `--use-file-for-fake-video-capture=${FAKE_VIDEO}`,
+            "--disable-webgl2",
+            "--disable-webgl",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+          ],
+        },
+      },
+    },
+    {
+      name: "smoke-no-camera",
+      testMatch: "flashcard-mode.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        // No fake-media-stream args: getUserMedia() hits Chromium's real
+        // (headless-auto-denied) permission path.
       },
     },
   ],

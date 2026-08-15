@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  createHandLandmarker,
+  createHandLandmarkerWithFallback,
   type Delegate,
   type HandLandmarkerResult,
 } from "@/lib/handLandmarker";
@@ -146,8 +146,9 @@ export function useHandTracking(
 
     setState((s) => ({ ...s, status: "loading-model" }));
     try {
-      landmarkerRef.current = await createHandLandmarker("GPU");
-      setState((s) => ({ ...s, status: "running", delegate: "GPU" }));
+      const { landmarker, delegate } = await createHandLandmarkerWithFallback();
+      landmarkerRef.current = landmarker;
+      setState((s) => ({ ...s, status: "running", delegate }));
     } catch (err) {
       setState((s) => ({
         ...s,

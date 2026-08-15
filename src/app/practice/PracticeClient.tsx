@@ -25,8 +25,11 @@ function randomSeed(): number {
  * model at M4, free-practice session added at M5: camera -> HandLandmarker
  * (GPU only) -> normalize.ts -> classifier.ts -> stability.ts -> the
  * target picker / feedback / session-summary loop SPEC.md §9 describes.
- * No CPU/flashcard fallback yet (M6), no persisted progress/drill yet
- * (M7) — those land in their own commits on top of this same page.
+ * M6 adds the degradation ladder: GPU-rejection -> CPU (handled inside
+ * useHandTracking/handLandmarker.ts, F3) and camera-denied/no-camera ->
+ * the keyboard-operable flashcard path below (F1/F2). No persisted
+ * progress/drill yet (M7) — that lands in its own commit on top of this
+ * same page.
  */
 export default function PracticeClient() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -90,6 +93,11 @@ export default function PracticeClient() {
   }, [state.rawLandmarks]);
 
   const target = currentTarget(session);
+  // SPEC.md F1/F2: camera permission denied or no camera hardware -> the
+  // flashcard path — reference + text description + a manual,
+  // keyboard-operable advance. "No dead end": every visitor reaches a
+  // working practice loop, camera or not.
+  const isFlashcardMode = state.status === "camera-denied" || state.status === "no-camera";
 
   const handleSkip = () => {
     setConfusableHint(null);
@@ -101,6 +109,15 @@ export default function PracticeClient() {
     setConfusableHint(null);
     resetStability();
     setSession(createSession(randomSeed()));
+  };
+
+  // SPEC.md §9's flashcard path is explicitly "no grading" — self-reported
+  // advancement, not a graded correct/wrong outcome, so it reuses skip()'s
+  // state transition (advance, don't touch attempted/correct) rather than
+  // recordCorrect()'s.
+  const handleMadeThisShape = () => {
+    resetStability();
+    setSession((prev) => skipTarget(prev));
   };
 
   return (
@@ -117,13 +134,13 @@ export default function PracticeClient() {
         </button>
       )}
 
-      {(state.status === "camera-denied" || state.status === "no-camera") && (
+      {isFlashcardMode && (
         <p role="alert" data-testid="camera-error">
           {state.status === "no-camera"
             ? "No camera was found on this device."
             : "Camera access was denied."}{" "}
-          A non-camera practice mode is coming (SPEC.md F1/F2) — not built yet
-          in this milestone.
+          Switched to flashcard mode below — no grading, but the same
+          letters and hints, fully usable with a keyboard.
         </p>
       )}
 
@@ -159,21 +176,25 @@ export default function PracticeClient() {
         )
       )}
 
-      <div className="camera-frame" data-status={state.status}>
-        <video ref={videoRef} data-testid="camera-video" autoPlay playsInline muted />
-        <canvas ref={canvasRef} data-testid="overlay-canvas" />
-      </div>
+      {!isFlashcardMode && (
+        <div className="camera-frame" data-status={state.status}>
+          <video ref={videoRef} data-testid="camera-video" autoPlay playsInline muted />
+          <canvas ref={canvasRef} data-testid="overlay-canvas" />
+        </div>
+      )}
 
-      <p data-testid="predicted-letter" className="predicted-letter">
-        {state.status === "loading-model" && "Loading hand-tracking model…"}
-        {state.status === "running" && state.prediction && (
-          <>
-            Handshape match:{" "}
-            <strong data-testid="predicted-letter-value">{state.prediction.letter}</strong>
-          </>
-        )}
-        {state.status === "running" && !state.prediction && "No hand detected."}
-      </p>
+      {!isFlashcardMode && (
+        <p data-testid="predicted-letter" className="predicted-letter">
+          {state.status === "loading-model" && "Loading hand-tracking model…"}
+          {state.status === "running" && state.prediction && (
+            <>
+              Handshape match:{" "}
+              <strong data-testid="predicted-letter-value">{state.prediction.letter}</strong>
+            </>
+          )}
+          {state.status === "running" && !state.prediction && "No hand detected."}
+        </p>
+      )}
 
       {session.lastResult === "wrong" && !session.finished && (
         <p data-testid="feedback-wrong">
@@ -182,6 +203,12 @@ export default function PracticeClient() {
             <> Commonly mixed up with {target} — check your hand position.</>
           )}
         </p>
+      )}
+
+      {!session.finished && isFlashcardMode && (
+        <button type="button" onClick={handleMadeThisShape} data-testid="made-this-shape">
+          I made this shape
+        </button>
       )}
 
       {!session.finished && (
