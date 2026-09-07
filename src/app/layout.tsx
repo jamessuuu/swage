@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
 
-const SITE_URL = "https://swage.vercel.app"; // intended production URL, not yet deployed
+// The real production alias, verified over HTTP on 2026-09-07.
+// swage.vercel.app is a DIFFERENT, unrelated site owned by someone else —
+// pointing metadataBase or a canonical at it hands this project's OG image
+// and canonical signal to a stranger.
+const SITE_URL = "https://swage-swart.vercel.app";
 const SITE_TITLE = "swage — ASL fingerspelling handshape practice";
 const SITE_DESCRIPTION =
   "Real-time ASL fingerspelling handshape practice, graded by a classifier trained and evaluated as part of this project. Runs entirely on your device.";
@@ -45,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
       <body>
+        <Header />
         {children}
         <Footer />
       </body>

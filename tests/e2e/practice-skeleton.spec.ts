@@ -35,12 +35,19 @@ test("a real hand in the fake camera feed produces a live handshape match", asyn
   await expect(page.getByTestId("delegate-badge")).toBeVisible({ timeout: 30_000 });
 
   const predicted = page.getByTestId("predicted-letter");
-  await expect(predicted).toContainText("Handshape match:", { timeout: 15_000 });
+  // 2026-09-07: the readout label shortened to "match <LETTER>" when the
+  // stage became a real instrument panel. Assert on the VALUE node rather
+  // than a substring of the whole line — stronger than the old check, which
+  // would have passed on any letter appearing anywhere in the sentence.
+  await expect(predicted).toContainText("match", { timeout: 15_000 });
   await expect(predicted).not.toContainText("No hand detected");
 
+  const value = page.getByTestId("predicted-letter-value");
+  await expect(value).toBeVisible({ timeout: 15_000 });
+
   // A real letter from the real, committed 24-class model (SPEC.md M4).
-  const text = await predicted.innerText();
-  expect(LETTERS.some((letter) => text.includes(letter))).toBe(true);
+  const text = (await value.innerText()).trim();
+  expect(LETTERS.some((letter) => letter === text)).toBe(true);
 });
 
 test("the delegate badge reports the GPU delegate", async ({ page }) => {

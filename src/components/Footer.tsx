@@ -14,10 +14,14 @@ import { Attribution } from "./Attribution";
 export function Footer() {
   return (
     <footer className="site-footer">
-      <Attribution />
-      <nav aria-label="Footer links">
-        <a href="https://github.com/jamessuuu/swage">Source on GitHub</a>
-      </nav>
+      <div className="shell">
+        <Attribution />
+        <nav aria-label="Footer links">
+          <a href="https://github.com/jamessuuu/swage">Source on GitHub</a>
+          <a href="/docs/failure-modes">Failure modes</a>
+          <a href="/docs/limitations">Limitations</a>
+        </nav>
+      </div>
     </footer>
   );
 }

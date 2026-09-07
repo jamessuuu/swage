@@ -210,147 +210,236 @@ export default function PracticeClient() {
 
   return (
     <main className="practice">
-      <h1>Practice</h1>
-      <p className="honesty-line">
-        This checks handshapes, not ASL. ASL is a full language with its own
-        grammar and facial and body grammar this tool doesn&apos;t see.
-      </p>
-
-      {state.status === "idle" && (
-        <button type="button" onClick={() => void start()} data-testid="start-camera">
-          Start camera
-        </button>
-      )}
-
-      {isFlashcardMode && (
-        <p role="alert" data-testid="camera-error">
-          {state.status === "no-camera"
-            ? "No camera was found on this device."
-            : "Camera access was denied."}{" "}
-          Switched to flashcard mode below — no grading, but the same
-          letters and hints, fully usable with a keyboard.
-        </p>
-      )}
-
-      {state.status === "model-error" && (
-        <p role="alert" data-testid="model-error">
-          Could not load the hand-tracking model: {state.errorMessage}
-        </p>
-      )}
-
-      {session.finished ? (
-        <section data-testid="session-summary">
-          <h2>Session complete</h2>
-          <p>
-            {session.mode === "drill" ? "Drill: " : ""}
-            {session.correct}/{session.attempted} correct ({accuracyPercent(session)}%),
-            best streak {session.bestStreak}.
+      <div className="shell practice-shell">
+        <div className="practice-head">
+          <h1>Practice</h1>
+          <p className="honesty-line" style={{ flex: "1 1 22rem" }}>
+            This checks handshapes, not ASL. ASL is a full language with its own
+            grammar and facial and body grammar this tool doesn&apos;t see.
           </p>
-          <button type="button" onClick={handlePracticeAgain} data-testid="practice-again">
-            Practice again
-          </button>
-          <button
-            type="button"
-            onClick={() => handleStartDrill("confusable")}
-            data-testid="drill-confusable"
-          >
-            Drill confusable letters
-          </button>
-          <button type="button" onClick={() => handleStartDrill("weak")} data-testid="drill-weak">
-            Drill my weak letters
-          </button>
-        </section>
-      ) : (
-        target && (
-          <section data-testid="target-panel">
-            <p data-testid="target-letter">
-              Show me: <strong>{target}</strong>
-            </p>
-            <p data-testid="target-hint">{HANDSHAPE_HINTS[target]}</p>
-            <p data-testid="session-progress">
-              {session.correct}/{session.attempted} correct this session
-              {session.currentStreak > 1 ? ` — streak ${session.currentStreak}` : ""}
-            </p>
-          </section>
-        )
-      )}
-
-      {!isFlashcardMode && (
-        <div className="camera-frame" data-status={state.status}>
-          <video ref={videoRef} data-testid="camera-video" autoPlay playsInline muted />
-          <canvas ref={canvasRef} data-testid="overlay-canvas" />
         </div>
-      )}
 
-      {!isFlashcardMode && (
-        <p data-testid="predicted-letter" className="predicted-letter">
-          {state.status === "loading-model" && "Loading hand-tracking model…"}
-          {state.status === "running" && state.prediction && (
-            <>
-              Handshape match:{" "}
-              <strong data-testid="predicted-letter-value">{state.prediction.letter}</strong>
-            </>
-          )}
-          {state.status === "running" && !state.prediction && "No hand detected."}
-        </p>
-      )}
+        <div className="practice-grid">
+          {/* ---- the stage: camera + overlay, the brightest object here ---- */}
+          <div>
+            {!isFlashcardMode ? (
+              <div className="stage">
+                <div className="stage-bar">
+                  <span className="lights">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span>
+                    {state.status === "idle" && "camera off"}
+                    {state.status === "loading-model" && "loading model"}
+                    {state.status === "running" && "live · on-device"}
+                    {state.status === "model-error" && "model error"}
+                  </span>
+                  {state.delegate && (
+                    <span
+                      className="delegate-badge"
+                      data-testid="delegate-badge"
+                      data-delegate={state.delegate}
+                    >
+                      {state.delegate === "GPU"
+                        ? "Running on GPU."
+                        : "Running on CPU — same result, about 15 frames a second instead of 35."}
+                    </span>
+                  )}
+                </div>
 
-      {session.lastResult === "wrong" && !session.finished && (
-        <p data-testid="feedback-wrong">
-          Not quite — try again.
-          {confusableHint && (
-            <> Commonly mixed up with {target} — check your hand position.</>
-          )}
-        </p>
-      )}
+                <div className="stage-media">
+                  <div className="camera-frame" data-status={state.status}>
+                    <video ref={videoRef} data-testid="camera-video" autoPlay playsInline muted />
+                    <canvas ref={canvasRef} data-testid="overlay-canvas" />
+                  </div>
 
-      {!session.finished && isFlashcardMode && (
-        <button type="button" onClick={handleMadeThisShape} data-testid="made-this-shape">
-          I made this shape
-        </button>
-      )}
+                  {/* Sits OUTSIDE .camera-frame on purpose: that element is
+                      scaleX(-1) so the selfie view reads naturally, and any
+                      text inside it would render mirrored. */}
+                  {state.status === "idle" && (
+                    <div className="stage-idle">
+                      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11m0-.5V5a1.5 1.5 0 0 1 3 0v5.5m0-.5V6.5a1.5 1.5 0 0 1 3 0V13m-9-2v3l-1.6-1.8a1.5 1.5 0 0 0-2.3 1.9l3.2 4.4A5 5 0 0 0 12.6 21h1.9a4.5 4.5 0 0 0 4.5-4.5V10.5"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <p>Nothing is recorded and nothing is uploaded.</p>
+                      <p className="sub">
+                        The frame is graded on this device by a 39KB classifier and discarded.
+                      </p>
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={() => void start()}
+                        data-testid="start-camera"
+                      >
+                        Start camera
+                      </button>
+                    </div>
+                  )}
 
-      {!session.finished && (
-        <button type="button" onClick={handleSkip} data-testid="skip-target">
-          Skip
-        </button>
-      )}
+                  {state.status === "loading-model" && (
+                    <div className="stage-idle">
+                      <span className="spinner" aria-hidden="true" />
+                      <p>Loading the hand-tracking model…</p>
+                      <p className="sub">One fetch. After this, no network at all.</p>
+                    </div>
+                  )}
+                </div>
 
-      {state.delegate && (
-        <p className="delegate-badge" data-testid="delegate-badge" data-delegate={state.delegate}>
-          {state.delegate === "GPU"
-            ? "Running on GPU."
-            : "Running on CPU — same result, about 15 frames a second instead of 35."}
-        </p>
-      )}
+                <p data-testid="predicted-letter" className="predicted-letter">
+                  {state.status === "idle" && "Camera is off — start it to be graded live."}
+                  {state.status === "loading-model" && "Loading hand-tracking model…"}
+                  {state.status === "running" && state.prediction && (
+                    <>
+                      match{" "}
+                      <strong data-testid="predicted-letter-value">
+                        {state.prediction.letter}
+                      </strong>
+                    </>
+                  )}
+                  {state.status === "running" && !state.prediction && "No hand detected."}
+                </p>
+              </div>
+            ) : (
+              <div className="stage">
+                <div className="stage-bar">flashcard mode · no camera</div>
+                <p
+                  role="alert"
+                  data-testid="camera-error"
+                  style={{ margin: "1rem", boxShadow: "none" }}
+                >
+                  {state.status === "no-camera"
+                    ? "No camera was found on this device."
+                    : "Camera access was denied."}{" "}
+                  Switched to flashcard mode — no grading, but the same
+                  letters and hints, fully usable with a keyboard.
+                </p>
+              </div>
+            )}
 
-      <section data-testid="progress-summary">
-        <h2>Your progress</h2>
-        {progressSnapshot === null ? null : progressSnapshot.sessions.length === 0 ? (
-          <p>No sessions recorded yet on this device.</p>
-        ) : (
-          <p data-testid="progress-summary-text">
-            {progressSnapshot.sessions.length} session
-            {progressSnapshot.sessions.length === 1 ? "" : "s"} recorded. Last session:{" "}
-            {(() => {
-              const last = progressSnapshot.sessions[progressSnapshot.sessions.length - 1];
-              return last
-                ? `${last.correct}/${last.attempted} in a session, best streak ${last.bestStreak}.`
-                : "";
-            })()}
-          </p>
-        )}
-        {persistenceAvailable === false && (
-          <p role="alert" data-testid="no-persistence-warning">
-            Your browser is not letting this page save progress (SPEC.md
-            F10) — practice still works, but nothing here will be
-            remembered after you leave.
-          </p>
-        )}
-        <button type="button" onClick={handleClearProgress} data-testid="clear-progress">
-          Clear my progress
-        </button>
-      </section>
+            {state.status === "model-error" && (
+              <p role="alert" data-testid="model-error" style={{ marginTop: "1rem" }}>
+                Could not load the hand-tracking model: {state.errorMessage}
+              </p>
+            )}
+          </div>
+
+          {/* ---- the HUD: what to show, and how you are doing ---- */}
+          <div className="hud">
+            {session.finished ? (
+              <section data-testid="session-summary">
+                <h2>Session complete</h2>
+                <p>
+                  {session.mode === "drill" ? "Drill: " : ""}
+                  {session.correct}/{session.attempted} correct ({accuracyPercent(session)}%),
+                  best streak {session.bestStreak}.
+                </p>
+                <div className="summary-actions">
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={handlePracticeAgain}
+                    data-testid="practice-again"
+                  >
+                    Practice again
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStartDrill("confusable")}
+                    data-testid="drill-confusable"
+                  >
+                    Drill confusable letters
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStartDrill("weak")}
+                    data-testid="drill-weak"
+                  >
+                    Drill my weak letters
+                  </button>
+                </div>
+              </section>
+            ) : (
+              target && (
+                <section data-testid="target-panel">
+                  <p data-testid="target-letter">
+                    Show me <strong>{target}</strong>
+                  </p>
+                  <p data-testid="target-hint">{HANDSHAPE_HINTS[target]}</p>
+                  <p data-testid="session-progress">
+                    {session.correct}/{session.attempted} correct this session
+                    {session.currentStreak > 1 ? ` — streak ${session.currentStreak}` : ""}
+                  </p>
+                </section>
+              )
+            )}
+
+            {session.lastResult === "wrong" && !session.finished && (
+              <p data-testid="feedback-wrong">
+                Not quite — try again.
+                {confusableHint && (
+                  <> Commonly mixed up with {target} — check your hand position.</>
+                )}
+              </p>
+            )}
+
+            {!session.finished && (
+              <div className="hud-actions">
+                {isFlashcardMode && (
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={handleMadeThisShape}
+                    data-testid="made-this-shape"
+                  >
+                    I made this shape
+                  </button>
+                )}
+                <button type="button" onClick={handleSkip} data-testid="skip-target">
+                  Skip
+                </button>
+              </div>
+            )}
+
+            <section data-testid="progress-summary">
+              <h2>Your progress</h2>
+              {progressSnapshot === null ? null : progressSnapshot.sessions.length === 0 ? (
+                <p>No sessions recorded yet on this device.</p>
+              ) : (
+                <p data-testid="progress-summary-text">
+                  {progressSnapshot.sessions.length} session
+                  {progressSnapshot.sessions.length === 1 ? "" : "s"} recorded. Last session:{" "}
+                  {(() => {
+                    const last = progressSnapshot.sessions[progressSnapshot.sessions.length - 1];
+                    return last
+                      ? `${last.correct}/${last.attempted} in a session, best streak ${last.bestStreak}.`
+                      : "";
+                  })()}
+                </p>
+              )}
+              {persistenceAvailable === false && (
+                <p role="alert" data-testid="no-persistence-warning" style={{ marginTop: "0.75rem" }}>
+                  Your browser is not letting this page save progress (SPEC.md
+                  F10) — practice still works, but nothing here will be
+                  remembered after you leave.
+                </p>
+              )}
+              <div className="hud-actions" style={{ marginTop: "1rem" }}>
+                <button type="button" onClick={handleClearProgress} data-testid="clear-progress">
+                  Clear my progress
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

@@ -4,9 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FAKE_VIDEO = path.join(__dirname, "tests/fixtures/hand-a.mjpeg");
-const PORT = 3417;
+// Overridable so a run never binds to — or silently reuses — a server some
+// other project left on a fixed port; that failure mode makes every
+// assertion here run against a DIFFERENT project's HTML.
+const PORT = Number(process.env.SWAGE_E2E_PORT ?? 3417);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
-const COLLECT_PORT = 5183;
+const COLLECT_PORT = Number(process.env.SWAGE_COLLECT_PORT ?? 5183);
 export const COLLECT_URL = `http://127.0.0.1:${COLLECT_PORT}`;
 
 /**
@@ -71,7 +74,7 @@ export default defineConfig({
     {
       command: `pnpm exec next dev --port ${PORT}`,
       url: BASE_URL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
@@ -79,7 +82,7 @@ export default defineConfig({
       // part of the Next.js app, exercised by tests/e2e/collect-tool.spec.ts.
       command: `pnpm exec vite --config scripts/collect/vite.config.ts --port ${COLLECT_PORT} --strictPort`,
       url: COLLECT_URL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
   ],
