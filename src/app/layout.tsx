@@ -46,10 +46,32 @@ export const metadata: Metadata = {
   },
 };
 
+// The site's author is the same Person entity agentjames publishes (one @id
+// across every project), so engines can join the sites to one maker.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "swage",
+  url: SITE_URL,
+  author: {
+    "@type": "Person",
+    "@id": "https://agentjames.vercel.app/#person",
+    name: "James Lorenz Santos",
+    url: "https://agentjames.vercel.app",
+    sameAs: [
+      "https://www.linkedin.com/in/james-lorenz-santos-720776251/",
+      "https://github.com/jamessuuu",
+      "https://www.onlinejobs.ph/jobseekers/info/2766463",
+      "https://ph.jobstreet.com/profiles/jameslorenz-santos-SXdpKyGqdK",
+    ],
+  },
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
         <Header />
         {children}
         <Footer />
